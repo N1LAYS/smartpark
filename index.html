@@ -1,0 +1,173 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>SmartPark - Your Space. Someone's Parking.</title>
+  <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" />
+  <link rel="stylesheet" href="style.css" />
+</head>
+<body>
+  <header class="topbar">
+    <div class="brand">
+      <span class="logo">P</span>
+      <div>
+        <h1>SmartPark</h1>
+        <p>Your Space. Someone's Parking.</p>
+      </div>
+    </div>
+    <nav>
+      <button class="tab active" data-tab="find">Find Parking</button>
+      <button class="tab" data-tab="owner">List a Space</button>
+      <button class="tab" data-tab="dash">My Bookings</button>
+    </nav>
+  </header>
+
+  <main>
+    <!-- ============ DRIVER: FIND PARKING ============ -->
+    <section id="tab-find" class="panel active">
+      <div class="filters">
+        <label>Vehicle
+          <select id="f-vehicle">
+            <option value="">Any</option>
+            <option value="bike">Bike</option>
+            <option value="car">Car</option>
+            <option value="suv">SUV / Large</option>
+          </select>
+        </label>
+        <label>Type
+          <select id="f-type">
+            <option value="">All</option>
+            <option value="home">Home</option>
+            <option value="office">Office</option>
+            <option value="complex">Society / Complex</option>
+          </select>
+        </label>
+        <label>Max price (Rs/hr)
+          <input id="f-price" type="number" min="0" placeholder="e.g. 50" />
+        </label>
+        <label>Sort by
+          <select id="f-sort">
+            <option value="distance">Distance</option>
+            <option value="price">Price</option>
+          </select>
+        </label>
+        <button id="btn-locate" class="btn secondary">Use my location</button>
+      </div>
+      <p id="loc-note" class="note"></p>
+      <div class="split">
+        <div id="map" class="map"></div>
+        <div id="results" class="results"></div>
+      </div>
+    </section>
+
+    <!-- ============ OWNER: LIST A SPACE ============ -->
+    <section id="tab-owner" class="panel">
+      <h2>List your parking space</h2>
+      <p class="note">Spare driveway, office slot or vacant society slot? List it and earn. (Demo: owner verification is simulated.)</p>
+      <form id="owner-form" class="form">
+        <div class="grid">
+          <label>Space name
+            <input id="o-title" required maxlength="60" placeholder="e.g. Driveway near Sector 16 market" />
+          </label>
+          <label>Space type
+            <select id="o-type">
+              <option value="home">Home / driveway</option>
+              <option value="office">Office / commercial</option>
+              <option value="complex">Complex / Society parking</option>
+            </select>
+          </label>
+          <label>Address / landmark
+            <input id="o-address" required maxlength="100" placeholder="Area, landmark" />
+          </label>
+          <label>Vehicle allowed
+            <select id="o-vehicle">
+              <option value="bike">Bike</option>
+              <option value="car" selected>Car</option>
+              <option value="suv">SUV / Large</option>
+            </select>
+          </label>
+          <label>Dimensions (optional)
+            <input id="o-dim" maxlength="40" placeholder="e.g. 5m x 2.5m" />
+          </label>
+          <label>Price (Rs per hour)
+            <input id="o-price" type="number" min="1" required value="30" />
+          </label>
+          <label>Available from (hour, 0-23)
+            <input id="o-from" type="number" min="0" max="23" required value="8" />
+          </label>
+          <label>Available until (hour, 1-24)
+            <input id="o-to" type="number" min="1" max="24" required value="20" />
+          </label>
+        </div>
+
+        <div id="complex-fields" class="grid hidden">
+          <label>Complex / society name
+            <input id="o-complex" maxlength="60" placeholder="e.g. Green Valley Apartments" />
+          </label>
+          <label>Gate / block
+            <input id="o-gate" maxlength="30" placeholder="e.g. Gate 2, Block C" />
+          </label>
+          <label>Slot number (shown only after booking)
+            <input id="o-slot" maxlength="20" placeholder="e.g. C-14" />
+          </label>
+          <label>Visitor entry process
+            <input id="o-entry" maxlength="100" placeholder="e.g. Show booking OTP to guard" />
+          </label>
+          <label>Management approval
+            <select id="o-approval">
+              <option value="approved">Approved by management</option>
+              <option value="pending">Pending (listing stays hidden)</option>
+            </select>
+          </label>
+        </div>
+
+        <label>Access instructions
+          <textarea id="o-notes" rows="2" maxlength="200" placeholder="How should the driver enter and park?"></textarea>
+        </label>
+
+        <p class="note"><strong>Pick the location:</strong> click on the map below, or use your current location.</p>
+        <button type="button" id="btn-owner-locate" class="btn secondary">Use my location</button>
+        <div id="owner-map" class="map small"></div>
+        <p id="o-coords" class="note">No location chosen yet.</p>
+
+        <button type="submit" class="btn primary">Publish listing</button>
+      </form>
+    </section>
+
+    <!-- ============ DASHBOARD ============ -->
+    <section id="tab-dash" class="panel">
+      <div class="dash-head">
+        <h2>My Bookings (Driver)</h2>
+      </div>
+      <div id="my-bookings"></div>
+
+      <h2>My Listings and Earnings (Owner)</h2>
+      <div id="earnings" class="earnings"></div>
+      <div id="my-listings"></div>
+
+      <h3>Bookings received</h3>
+      <div id="received"></div>
+
+      <p><button id="btn-reset" class="btn danger">Reset demo data</button></p>
+    </section>
+  </main>
+
+  <!-- ============ BOOKING MODAL ============ -->
+  <div id="modal" class="modal hidden" role="dialog" aria-modal="true">
+    <div class="modal-box">
+      <button id="modal-close" class="close" aria-label="Close">&times;</button>
+      <div id="modal-body"></div>
+    </div>
+  </div>
+
+  <div id="toast" class="toast hidden"></div>
+
+  <footer>
+    SmartPark prototype &middot; Demo payment only &middot; Map data &copy; OpenStreetMap contributors
+  </footer>
+
+  <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
+  <script src="app.js"></script>
+</body>
+</html>
