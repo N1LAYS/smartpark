@@ -73,6 +73,6 @@ Planned production stack: React Native, Node.js + Express, Supabase (PostgreSQL,
 
 ## Team
 
-- Member 1 - role
-- Member 2 - role
-- Member 3 - role
+- NILAY SINGH - business model
+- PRIYANSHU SINGH - backend
+- PRAKHAR MISHRA - frontend
