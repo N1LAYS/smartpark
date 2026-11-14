@@ -474,3 +474,260 @@ body.app-in header, body.app-in main { animation: appIn .6s ease both; }
   *, *::before, *::after { animation-duration: .01ms !important; animation-iteration-count: 1 !important; transition-duration: .01ms !important; }
   .lane-car { animation: none; }
 }
+.logo {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  background: transparent;
+  padding: 0;
+  line-height: 0;
+}
+/* Dark Mode Theme Variables */
+[data-theme="dark"] {
+  --bg: #0b1120;
+  --surface: #111827;
+  --surface-alt: #1e293b;
+  --border: #283548;
+  --text: #f1f5f9;
+  --text-muted: #94a3b8;
+  --primary: #3b82f6;
+  --accent: #2bb3a3;
+}
+
+/* Base & Surface Overrides */
+[data-theme="dark"] body {
+  background-color: #0b1120;
+  color: #f1f5f9;
+}
+
+[data-theme="dark"] .topbar,
+[data-theme="dark"] .auth-box,
+[data-theme="dark"] .search-hero,
+[data-theme="dark"] .filters,
+[data-theme="dark"] .modal-box,
+[data-theme="dark"] .gate-card,
+[data-theme="dark"] .card,
+[data-theme="dark"] .booking-card,
+[data-theme="dark"] .listing-card,
+[data-theme="dark"] .stat-card {
+  background-color: #111827;
+  border-color: #1e293b;
+  color: #f1f5f9;
+}
+
+[data-theme="dark"] .role-card,
+[data-theme="dark"] .suggest,
+[data-theme="dark"] .demo-otp,
+[data-theme="dark"] .pick-loc {
+  background-color: #1e293b;
+  border-color: #334155;
+  color: #f1f5f9;
+}
+
+[data-theme="dark"] .role-card:hover {
+  border-color: #3b82f6;
+  background-color: #172554;
+}
+
+/* Form Controls */
+[data-theme="dark"] input,
+[data-theme="dark"] select,
+[data-theme="dark"] textarea,
+[data-theme="dark"] .searchbar {
+  background-color: #0f172a;
+  border-color: #334155;
+  color: #f8fafc;
+}
+
+[data-theme="dark"] input::placeholder,
+[data-theme="dark"] textarea::placeholder {
+  color: #64748b;
+}
+
+[data-theme="dark"] .prefix {
+  background-color: #1e293b;
+  border-color: #334155;
+  color: #cbd5e1;
+}
+
+[data-theme="dark"] .note,
+[data-theme="dark"] .loc-note,
+[data-theme="dark"] .result-count,
+[data-theme="dark"] footer {
+  color: #94a3b8;
+}
+
+/* Darken OpenStreetMap Leaflet Tiles in Dark Mode */
+[data-theme="dark"] .leaflet-layer,
+[data-theme="dark"] .leaflet-control-zoom-in,
+[data-theme="dark"] .leaflet-control-zoom-out,
+[data-theme="dark"] .leaflet-control-attribution {
+  filter: invert(100%) hue-rotate(180deg) brightness(95%) contrast(90%);
+}
+/* Header actions layout */
+.header-actions {
+  display: flex;
+  align-items: center;
+  gap: 0.75rem;
+}
+
+#theme-toggle {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.35rem;
+  cursor: pointer;
+}
+
+/* Smooth transition when switching Light <-> Dark */
+body,
+.topbar,
+.auth-box,
+.search-hero,
+.filters,
+.modal-box,
+.gate-card,
+.role-card,
+input,
+select,
+textarea {
+  transition: background-color 0.2s ease, color 0.2s ease, border-color 0.2s ease;
+}
+
+/* ================= DARK MODE ================= */
+[data-theme="dark"] body {
+  background-color: #0b1120;
+  color: #f1f5f9;
+}
+
+[data-theme="dark"] .topbar,
+[data-theme="dark"] .auth-box,
+[data-theme="dark"] .search-hero,
+[data-theme="dark"] .filters,
+[data-theme="dark"] .modal-box,
+[data-theme="dark"] .gate-card,
+[data-theme="dark"] .card,
+[data-theme="dark"] .booking-card,
+[data-theme="dark"] .listing-card,
+[data-theme="dark"] .stat-card {
+  background-color: #111827;
+  border-color: #1e293b;
+  color: #f1f5f9;
+}
+
+[data-theme="dark"] .role-card,
+[data-theme="dark"] .suggest,
+[data-theme="dark"] .demo-otp,
+[data-theme="dark"] .pick-loc,
+[data-theme="dark"] .chip {
+  background-color: #1e293b;
+  border-color: #334155;
+  color: #f1f5f9;
+}
+
+[data-theme="dark"] .role-card:hover,
+[data-theme="dark"] .chip:hover {
+  border-color: #3b82f6;
+  background-color: #172554;
+}
+
+[data-theme="dark"] input,
+[data-theme="dark"] select,
+[data-theme="dark"] textarea,
+[data-theme="dark"] .searchbar {
+  background-color: #0f172a;
+  border-color: #334155;
+  color: #f8fafc;
+}
+
+[data-theme="dark"] .prefix {
+  background-color: #1e293b;
+  border-color: #334155;
+  color: #cbd5e1;
+}
+
+[data-theme="dark"] .note,
+[data-theme="dark"] .loc-note,
+[data-theme="dark"] .result-count,
+[data-theme="dark"] footer {
+  color: #94a3b8;
+}
+
+[data-theme="dark"] #theme-toggle {
+  background-color: #1e293b;
+  color: #f8fafc;
+  border: 1px solid #334155;
+}
+
+/* Darken OpenStreetMap tiles in Dark Mode */
+[data-theme="dark"] .leaflet-layer,
+[data-theme="dark"] .leaflet-control-zoom-in,
+[data-theme="dark"] .leaflet-control-zoom-out,
+[data-theme="dark"] .leaflet-control-attribution {
+  filter: invert(100%) hue-rotate(180deg) brightness(95%) contrast(90%);
+}
+/* ================= DARK MODE ================= */
+[data-theme="dark"] body {
+  background-color: #0b1120;
+  color: #f1f5f9;
+}
+
+[data-theme="dark"] .topbar,
+[data-theme="dark"] .auth-box,
+[data-theme="dark"] .search-hero,
+[data-theme="dark"] .filters,
+[data-theme="dark"] .modal-box,
+[data-theme="dark"] .gate-card,
+[data-theme="dark"] .card,
+[data-theme="dark"] .booking-card,
+[data-theme="dark"] .listing-card,
+[data-theme="dark"] .stat-card {
+  background-color: #111827;
+  border-color: #1e293b;
+  color: #f1f5f9;
+}
+
+[data-theme="dark"] .role-card,
+[data-theme="dark"] .suggest,
+[data-theme="dark"] .demo-otp,
+[data-theme="dark"] .pick-loc,
+[data-theme="dark"] .chip {
+  background-color: #1e293b;
+  border-color: #334155;
+  color: #f1f5f9;
+}
+
+[data-theme="dark"] input,
+[data-theme="dark"] select,
+[data-theme="dark"] textarea,
+[data-theme="dark"] .searchbar {
+  background-color: #0f172a;
+  border-color: #334155;
+  color: #f8fafc;
+}
+
+[data-theme="dark"] .prefix {
+  background-color: #1e293b;
+  border-color: #334155;
+  color: #cbd5e1;
+}
+
+[data-theme="dark"] .note,
+[data-theme="dark"] .loc-note,
+[data-theme="dark"] .result-count,
+[data-theme="dark"] footer {
+  color: #94a3b8;
+}
+
+[data-theme="dark"] #theme-toggle {
+  background-color: #1e293b;
+  color: #f8fafc;
+  border: 1px solid #334155;
+}
+
+/* Darken OpenStreetMap tiles in Dark Mode */
+[data-theme="dark"] .leaflet-layer,
+[data-theme="dark"] .leaflet-control-zoom-in,
+[data-theme="dark"] .leaflet-control-zoom-out,
+[data-theme="dark"] .leaflet-control-attribution {
+  filter: invert(100%) hue-rotate(180deg) brightness(95%) contrast(90%);
+}

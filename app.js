@@ -1016,3 +1016,91 @@
   var existing = SmartAuth.current();   // already logged in from an earlier visit?
   if (existing) { startSession(existing); }
 })();
+(function initTheme() {
+  const toggleBtn = document.getElementById("theme-toggle");
+  const iconEl = document.getElementById("theme-icon");
+  const metaTheme = document.querySelector('meta[name="theme-color"]');
+
+  const savedTheme = localStorage.getItem("smartpark-theme");
+  const prefersDark = window.matchMedia("(prefers-color-scheme: dark)").matches;
+  const initialTheme = savedTheme || (prefersDark ? "dark" : "light");
+
+  function applyTheme(theme) {
+    document.documentElement.setAttribute("data-theme", theme);
+    localStorage.setItem("smartpark-theme", theme);
+    if (iconEl) iconEl.textContent = theme === "dark" ? "☀️" : "🌙";
+    if (metaTheme) metaTheme.setAttribute("content", theme === "dark" ? "#0b1120" : "#1565c0");
+  }
+
+  applyTheme(initialTheme);
+
+  if (toggleBtn) {
+    toggleBtn.addEventListener("click", () => {
+      const current = document.documentElement.getAttribute("data-theme");
+      applyTheme(current === "dark" ? "light" : "dark");
+    });
+  }
+})();
+// Light / Dark Mode Toggle
+(function setupThemeToggle() {
+  const btn = document.getElementById("theme-toggle");
+  const icon = document.getElementById("theme-icon");
+  const text = document.getElementById("theme-text");
+  const metaTheme = document.querySelector('meta[name="theme-color"]');
+
+  function setTheme(mode) {
+    if (mode === "dark") {
+      document.documentElement.setAttribute("data-theme", "dark");
+      if (icon) icon.textContent = "☀️";
+      if (text) text.textContent = "Light";
+      if (btn) btn.setAttribute("aria-label", "Switch to light mode");
+      if (metaTheme) metaTheme.setAttribute("content", "#0b1120");
+    } else {
+      document.documentElement.removeAttribute("data-theme");
+      if (icon) icon.textContent = "🌙";
+      if (text) text.textContent = "Dark";
+      if (btn) btn.setAttribute("aria-label", "Switch to dark mode");
+      if (metaTheme) metaTheme.setAttribute("content", "#1565c0");
+    }
+    localStorage.setItem("smartpark-theme", mode);
+  }
+
+  // Load saved preference (defaults to light if none saved)
+  const saved = localStorage.getItem("smartpark-theme") || "light";
+  setTheme(saved);
+
+  // Toggle between light and dark on click
+  if (btn) {
+    btn.addEventListener("click", () => {
+      const isDark = document.documentElement.getAttribute("data-theme") === "dark";
+      setTheme(isDark ? "light" : "dark");
+    });
+  }
+})();
+document.addEventListener("DOMContentLoaded", () => {
+  const toggleBtn = document.getElementById("theme-toggle");
+  const iconEl = document.getElementById("theme-icon");
+
+  // 1. Apply saved theme on page load
+  const savedTheme = localStorage.getItem("smartpark-theme") || "light";
+  if (savedTheme === "dark") {
+    document.documentElement.setAttribute("data-theme", "dark");
+    if (iconEl) iconEl.textContent = "☀️";
+  }
+
+  // 2. Toggle between Dark and Light on click
+  if (toggleBtn) {
+    toggleBtn.addEventListener("click", () => {
+      const isDark = document.documentElement.getAttribute("data-theme") === "dark";
+      if (isDark) {
+        document.documentElement.removeAttribute("data-theme");
+        localStorage.setItem("smartpark-theme", "light");
+        if (iconEl) iconEl.textContent = "🌙";
+      } else {
+        document.documentElement.setAttribute("data-theme", "dark");
+        localStorage.setItem("smartpark-theme", "dark");
+        if (iconEl) iconEl.textContent = "☀️";
+      }
+    });
+  }
+});
