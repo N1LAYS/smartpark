@@ -77,13 +77,19 @@
   }
   function newVerifier() {
     if (fbVerifier) { try { fbVerifier.clear(); } catch (e) { /* ignore */ } fbVerifier = null; }
-    var box = document.getElementById('recaptcha-container');
-    box.innerHTML = '';
+    // use a brand-new container each time, because reCAPTCHA refuses to render twice in one element
+    var old = document.getElementById('recaptcha-container');
+    var fresh = document.createElement('div');
+    fresh.id = 'recaptcha-container';
+    old.parentNode.replaceChild(fresh, old);
     fbVerifier = new window.firebase.auth.RecaptchaVerifier('recaptcha-container', { size: 'invisible' });
     return fbVerifier;
   }
   function fbMessage(err) {
     var code = err && err.code ? String(err.code) : '';
+    if (code === 'auth/operation-not-allowed' && /region/i.test(String(err.message || ''))) {
+      return 'Firebase is blocking SMS to this country. In Firebase open Authentication > Settings > SMS region policy and allow India. [' + code + ']';
+    }
     var map = {
       'auth/invalid-phone-number': 'That phone number is not valid.',
       'auth/missing-phone-number': 'Enter your mobile number.',
@@ -95,13 +101,15 @@
       'auth/session-expired': 'That OTP has expired. Please request a new one.',
       'auth/missing-verification-code': 'Enter the 6-digit OTP.',
       'auth/network-request-failed': 'No internet connection. Please check your network and try again.',
-      'auth/operation-not-allowed': 'Phone login is not switched on in Firebase yet (Authentication > Sign-in method > Phone).',
+      'auth/operation-not-allowed': 'Firebase refused to send the SMS. Check Authentication > Sign-in method > Phone is enabled, and Authentication > Settings > SMS region policy allows India.',
       'auth/unauthorized-domain': 'This web address is not allowed in Firebase. Add it under Authentication > Settings > Authorized domains.',
       'auth/operation-not-supported-in-this-environment': 'Open the site with Live Server (http://127.0.0.1:5500) instead of double-clicking the file.',
       'auth/invalid-app-credential': 'Firebase could not verify this app. Check the keys in config.js.',
       'auth/billing-not-enabled': 'Firebase needs the Blaze (pay as you go) plan to send real SMS. Use a test number meanwhile.'
     };
-    return map[code] || ('Could not complete the request' + (code ? ' (' + code + ')' : '') + '. Please try again.');
+    if (window.console) { console.error('SmartPark Firebase error:', err); }
+    // the raw Firebase code is shown too, so problems are easy to diagnose
+    return (map[code] || 'Could not complete the request. Please try again.') + (code ? ' [' + code + ']' : '');
   }
 
   /* ---------- step 1: send OTP ---------- */
