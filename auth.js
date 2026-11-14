@@ -1,14 +1,14 @@
-/* SmartPark - login system: phone number + OTP
+/* SmartPark - login system: phone number + demo OTP
  *
  * Flow:  choose side (driver / owner)  ->  enter phone  ->  enter OTP  ->
  *        first time only: enter name + location  ->  logged in.
  *
+ * DEMO OTP: no SMS is sent. The 6-digit OTP is shown on screen so the login can be
+ * showcased anywhere without an SMS service. (To use real SMS later, only requestOtp and
+ * verifyOtp need to change - for example Firebase, MSG91, Twilio Verify or Supabase.)
+ *
  * Driver and owner accounts are separate: the same phone number can be registered once as a
  * driver and once as an owner, and each side only sees its own screens and data.
- *
- * REAL SMS:  fill in config.js with your Firebase web-app keys (see README, "Real SMS OTP").
- *            Firebase then sends the SMS and checks the code.
- * DEMO MODE: if config.js is empty, no SMS is sent and the OTP is shown on screen instead.
  *
  * The rest of the app only uses: requestOtp, verifyOtp, saveProfile, logout, current, isDemo.
  * requestOtp and verifyOtp return Promises.
@@ -19,9 +19,9 @@
   var KEY_USERS = 'smartpark_users_v2';
   var KEY_SESSION = 'smartpark_session_v2';
   var ROLES = ['driver', 'owner'];
-  var OTP_TTL_MS = 5 * 60 * 1000;   // demo OTP valid for 5 minutes
-  var RESEND_MS = 30 * 1000;        // wait 30 s before asking for another OTP
-  var MAX_TRIES = 5;                // wrong guesses allowed per demo OTP
+  var OTP_TTL_MS = 5 * 60 * 1000;   // an OTP is valid for 5 minutes
+  var RESEND_SEC = 10;              // the Resend button unlocks after 10 seconds
+  var MAX_TRIES = 5;                // wrong guesses allowed per OTP
 
   var pending = null;               // memory only: the OTP request in progress
 
@@ -66,81 +66,14 @@
     return null;
   }
 
-  /* ---------- Firebase (real SMS) ---------- */
-  function fbConfig() { var c = window.SMARTPARK_FIREBASE; return c && c.apiKey ? c : null; }
-  function isDemo() { return !fbConfig(); }
-
-  var fbStarted = false, fbVerifier = null;
-  function fbAuth() {
-    if (!fbStarted) { window.firebase.initializeApp(fbConfig()); fbStarted = true; }
-    return window.firebase.auth();
-  }
-  function newVerifier() {
-    if (fbVerifier) { try { fbVerifier.clear(); } catch (e) { /* ignore */ } fbVerifier = null; }
-    // use a brand-new container each time, because reCAPTCHA refuses to render twice in one element
-    var old = document.getElementById('recaptcha-container');
-    var fresh = document.createElement('div');
-    fresh.id = 'recaptcha-container';
-    old.parentNode.replaceChild(fresh, old);
-    fbVerifier = new window.firebase.auth.RecaptchaVerifier('recaptcha-container', { size: 'invisible' });
-    return fbVerifier;
-  }
-  function fbMessage(err) {
-    var code = err && err.code ? String(err.code) : '';
-    if (code === 'auth/operation-not-allowed' && /region/i.test(String(err.message || ''))) {
-      return 'Firebase is blocking SMS to this country. In Firebase open Authentication > Settings > SMS region policy and allow India. [' + code + ']';
-    }
-    var map = {
-      'auth/invalid-phone-number': 'That phone number is not valid.',
-      'auth/missing-phone-number': 'Enter your mobile number.',
-      'auth/too-many-requests': 'Too many attempts from this device. Please wait a while and try again.',
-      'auth/quota-exceeded': 'The SMS limit for today has been reached. Please try again later.',
-      'auth/captcha-check-failed': 'Security check failed. Please refresh the page and try again.',
-      'auth/invalid-verification-code': 'Wrong OTP. Please check the code and try again.',
-      'auth/code-expired': 'That OTP has expired. Please request a new one.',
-      'auth/session-expired': 'That OTP has expired. Please request a new one.',
-      'auth/missing-verification-code': 'Enter the 6-digit OTP.',
-      'auth/network-request-failed': 'No internet connection. Please check your network and try again.',
-      'auth/operation-not-allowed': 'Firebase refused to send the SMS. Check Authentication > Sign-in method > Phone is enabled, and Authentication > Settings > SMS region policy allows India.',
-      'auth/unauthorized-domain': 'This web address is not allowed in Firebase. Add it under Authentication > Settings > Authorized domains.',
-      'auth/operation-not-supported-in-this-environment': 'Open the site with Live Server (http://127.0.0.1:5500) instead of double-clicking the file.',
-      'auth/invalid-app-credential': 'Firebase could not verify this app. Check the keys in config.js.',
-      'auth/billing-not-enabled': 'Firebase needs the Blaze (pay as you go) plan to send real SMS. Use a test number meanwhile.'
-    };
-    if (window.console) { console.error('SmartPark Firebase error:', err); }
-    // the raw Firebase code is shown too, so problems are easy to diagnose
-    return (map[code] || 'Could not complete the request. Please try again.') + (code ? ' [' + code + ']' : '');
-  }
-
-  /* ---------- step 1: send OTP ---------- */
+  /* ---------- step 1: send OTP (demo: shown on screen) ---------- */
   function requestOtp(role, phoneRaw) {
     if (!isRole(role)) { return Promise.resolve(fail('Please choose Driver or Owner.')); }
     var phone = normPhone(phoneRaw);
     if (!phone) { return Promise.resolve(fail('Enter a valid 10-digit mobile number.')); }
-    var now = Date.now();
-    if (pending && pending.phone === phone && pending.role === role && now - pending.sentAt < RESEND_MS) {
-      var wait = Math.ceil((RESEND_MS - (now - pending.sentAt)) / 1000);
-      return Promise.resolve(fail('Please wait ' + wait + ' seconds before asking for a new OTP.'));
-    }
-
-    if (isDemo()) {
-      var code = String(100000 + randomInt(900000));
-      pending = { role: role, phone: phone, code: code, expires: now + OTP_TTL_MS, sentAt: now, tries: 0 };
-      return Promise.resolve({ ok: true, phone: phone, demo: true, demoOtp: code, resendIn: RESEND_MS / 1000 });
-    }
-
-    if (!window.firebase) {
-      return Promise.resolve(fail('Could not load the SMS service. Check your internet connection and refresh.'));
-    }
-    return Promise.resolve().then(function () {
-      return fbAuth().signInWithPhoneNumber(phone, newVerifier());
-    }).then(function (confirmation) {
-      pending = { role: role, phone: phone, confirmation: confirmation, sentAt: Date.now() };
-      return { ok: true, phone: phone, demo: false, resendIn: RESEND_MS / 1000 };
-    }).catch(function (err) {
-      if (fbVerifier) { try { fbVerifier.clear(); } catch (e) { /* ignore */ } fbVerifier = null; }
-      return fail(fbMessage(err));
-    });
+    var code = String(100000 + randomInt(900000));
+    pending = { role: role, phone: phone, code: code, expires: Date.now() + OTP_TTL_MS, tries: 0 };
+    return Promise.resolve({ ok: true, phone: phone, demo: true, demoOtp: code, resendIn: RESEND_SEC });
   }
 
   /* ---------- step 2: check OTP, log in (or create the account) ---------- */
@@ -169,18 +102,7 @@
       return Promise.resolve(fail('Please request an OTP first.'));
     }
     if (!/^[0-9]{6}$/.test(code)) { return Promise.resolve(fail('Enter the 6-digit OTP.')); }
-
-    if (pending.confirmation) {                       // real SMS
-      return pending.confirmation.confirm(code).then(function () {
-        pending = null;
-        try { fbAuth().signOut(); } catch (e) { /* SmartPark keeps its own session */ }
-        return finishLogin(role, phone);
-      }).catch(function (err) { return fail(fbMessage(err)); });
-    }
-
-    // demo mode
     if (Date.now() > pending.expires) { pending = null; return Promise.resolve(fail('That OTP has expired. Please request a new one.')); }
-    if (pending.tries >= MAX_TRIES) { pending = null; return Promise.resolve(fail('Too many wrong attempts. Please request a new OTP.')); }
     if (code !== pending.code) {
       pending.tries++;
       var left = MAX_TRIES - pending.tries;
@@ -234,6 +156,8 @@
 
   window.SmartAuth = {
     requestOtp: requestOtp, verifyOtp: verifyOtp, saveProfile: saveProfile,
-    logout: logout, current: current, isDemo: isDemo, ROLES: ROLES
+    logout: logout, current: current,
+    isDemo: function () { return true; },
+    ROLES: ROLES
   };
 })();

@@ -3,11 +3,12 @@
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <meta name="theme-color" content="#1565c0" />
   <title>SmartPark - Your Space. Someone's Parking.</title>
   <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" />
   <link rel="preconnect" href="https://fonts.googleapis.com" />
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
-  <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Bricolage+Grotesque:opsz,wght@12..96,700;12..96,800&display=swap" />
+  <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Bricolage+Grotesque:opsz,wght@12..96,700;12..96,800&family=Inter:wght@400;500;600;700&display=swap" />
   <link rel="stylesheet" href="style.css" />
 </head>
 <body>
@@ -19,7 +20,7 @@
         <p>Your Space. Someone's Parking.</p>
       </div>
     </div>
-    <nav id="nav" class="hidden">
+    <nav id="nav" class="hidden" aria-label="Main">
       <button class="tab" data-tab="find" data-role="driver">Find Parking</button>
       <button class="tab" data-tab="dash" data-role="driver">My Bookings</button>
       <button class="tab" data-tab="owner" data-role="owner">List a Space</button>
@@ -31,7 +32,7 @@
     </div>
   </header>
 
-  <!-- ============ LOGIN / SIGN UP ============ -->
+  <!-- ============ LOGIN / SIGN UP (demo OTP) ============ -->
   <div id="auth" class="auth">
     <!-- background: a parking lot at night. One car drives in and parks when the page loads. -->
     <div class="lot" aria-hidden="true">
@@ -59,7 +60,12 @@
     </div>
 
     <div class="auth-hero">
+      <span class="hero-tag">Peer-to-peer parking</span>
       <h2 class="hero-title">Your space.<br>Someone's parking.</h2>
+      <ul class="hero-points">
+        <li><strong>Drivers</strong> find and book a nearby space by the hour.</li>
+        <li><strong>Owners</strong> turn an empty driveway or society slot into income.</li>
+      </ul>
     </div>
 
     <div class="auth-box">
@@ -112,7 +118,6 @@
         <h2>Enter the OTP</h2>
         <p class="note">Sent to <strong id="otp-phone"></strong></p>
         <div id="demo-otp" class="demo-otp hidden"></div>
-        <p id="otp-hint" class="note"></p>
         <form id="otp-form" class="form" novalidate>
           <label>6-digit OTP
             <input id="a-otp" class="otp-input" inputmode="numeric" maxlength="6" autocomplete="one-time-code" placeholder="------" />
@@ -126,7 +131,7 @@
       <!-- step 4 (first time only): name + location -->
       <div id="auth-profile-wrap" class="hidden">
         <h2>Tell us about you</h2>
-        <p class="note" id="profile-note">Just two quick details to finish setting up your account.</p>
+        <p class="note">Just two quick details to finish setting up your account.</p>
         <form id="profile-form" class="form" novalidate>
           <label>Your name
             <input id="p-name" maxlength="60" autocomplete="name" placeholder="e.g. Rahul Sharma" />
@@ -143,8 +148,6 @@
     </div>
   </div>
 
-  <div id="recaptcha-container"></div>
-
   <!-- ============ ENTRY TRANSITION: parking barrier opens, car drives in ============ -->
   <div id="gate" class="gate hidden" aria-hidden="true">
     <div class="gate-card">
@@ -159,6 +162,29 @@
   <main>
     <!-- ============ DRIVER: FIND PARKING ============ -->
     <section id="tab-find" class="panel active">
+      <div class="search-hero">
+        <div class="search-copy">
+          <h2>Find a parking space</h2>
+          <p>Search any area, landmark or address, then book by the hour.</p>
+        </div>
+        <div class="search-wrap">
+          <form id="search-form" class="searchbar" autocomplete="off" role="search">
+            <svg class="s-icon" viewBox="0 0 24 24" width="20" height="20" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="11" cy="11" r="7"/><path d="m20 20-3.5-3.5"/></svg>
+            <input id="q" type="search" placeholder="Search area, landmark or address (e.g. Connaught Place)" aria-label="Search for an address" maxlength="120" />
+            <button type="button" id="q-clear" class="icon-btn hidden" aria-label="Clear search">&times;</button>
+            <button type="submit" class="btn accent" id="q-go">Search</button>
+          </form>
+          <div id="suggest" class="suggest hidden" role="listbox"></div>
+        </div>
+        <div class="search-actions">
+          <button type="button" id="btn-locate" class="chip">
+            <svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="12" cy="12" r="3"/><path d="M12 2v3M12 19v3M2 12h3M19 12h3"/><circle cx="12" cy="12" r="8"/></svg>
+            Use my location
+          </button>
+          <span id="loc-note" class="loc-note"></span>
+        </div>
+      </div>
+
       <div class="filters">
         <label>Vehicle
           <select id="f-vehicle">
@@ -176,7 +202,15 @@
             <option value="complex">Society / Complex</option>
           </select>
         </label>
-        <label>Max price (Rs/hr)
+        <label>Within
+          <select id="f-radius">
+            <option value="">Any distance</option>
+            <option value="2">2 km</option>
+            <option value="5">5 km</option>
+            <option value="10">10 km</option>
+          </select>
+        </label>
+        <label>Max price (&#8377;/hr)
           <input id="f-price" type="number" min="0" placeholder="e.g. 50" />
         </label>
         <label>Sort by
@@ -185,19 +219,23 @@
             <option value="price">Price</option>
           </select>
         </label>
-        <button id="btn-locate" class="btn secondary">Use my location</button>
       </div>
-      <p id="loc-note" class="note"></p>
+
       <div class="split">
         <div id="map" class="map"></div>
-        <div id="results" class="results"></div>
+        <div>
+          <p id="result-count" class="result-count"></p>
+          <div id="results" class="results"></div>
+        </div>
       </div>
     </section>
 
     <!-- ============ OWNER: LIST A SPACE ============ -->
     <section id="tab-owner" class="panel">
-      <h2>List your parking space</h2>
-      <p class="note">Spare driveway, office slot or vacant society slot? List it and earn. (Demo: owner verification is simulated.)</p>
+      <div class="page-head">
+        <h2>List your parking space</h2>
+        <p class="note">Spare driveway, office slot or vacant society slot? List it and earn. (Demo: owner verification is simulated.)</p>
+      </div>
       <form id="owner-form" class="form">
         <div class="grid">
           <label>Space name
@@ -223,7 +261,7 @@
           <label>Dimensions (optional)
             <input id="o-dim" maxlength="40" placeholder="e.g. 5m x 2.5m" />
           </label>
-          <label>Price (Rs per hour)
+          <label>Price (&#8377; per hour)
             <input id="o-price" type="number" min="1" required value="30" />
           </label>
           <label>Available from (hour, 0-23)
@@ -259,26 +297,31 @@
           <textarea id="o-notes" rows="2" maxlength="200" placeholder="How should the driver enter and park?"></textarea>
         </label>
 
-        <p class="note"><strong>Pick the location:</strong> click on the map below, or use your current location.</p>
-        <button type="button" id="btn-owner-locate" class="btn secondary">Use my location</button>
-        <div id="owner-map" class="map small"></div>
-        <p id="o-coords" class="note">No location chosen yet.</p>
+        <div class="pick-loc">
+          <p class="note"><strong>Pick the location:</strong> search an address, click on the map, or use your current location.</p>
+          <div class="inline-search">
+            <input id="o-q" type="search" placeholder="Search an address to place the pin" aria-label="Search an address" maxlength="120" />
+            <button type="button" id="o-find" class="btn secondary">Find</button>
+            <button type="button" id="btn-owner-locate" class="btn secondary">Use my location</button>
+          </div>
+          <p id="o-q-msg" class="note"></p>
+          <div id="owner-map" class="map small"></div>
+          <p id="o-coords" class="note">No location chosen yet.</p>
+        </div>
 
         <button type="submit" class="btn primary">Publish listing</button>
       </form>
     </section>
 
-    <!-- ============ DASHBOARD ============ -->
+    <!-- ============ DRIVER: MY BOOKINGS ============ -->
     <section id="tab-dash" class="panel">
-      <div class="dash-head">
-        <h2>My Bookings</h2>
-      </div>
+      <div class="page-head"><h2>My Bookings</h2></div>
       <div id="my-bookings"></div>
     </section>
 
     <!-- ============ OWNER: LISTINGS AND EARNINGS ============ -->
     <section id="tab-listings" class="panel">
-      <h2>My Listings and Earnings</h2>
+      <div class="page-head"><h2>My Listings and Earnings</h2></div>
       <div id="earnings" class="earnings"></div>
       <div id="my-listings"></div>
 
@@ -287,7 +330,7 @@
     </section>
   </main>
 
-  <!-- ============ BOOKING MODAL ============ -->
+  <!-- ============ BOOKING + PAYMENT MODAL ============ -->
   <div id="modal" class="modal hidden" role="dialog" aria-modal="true">
     <div class="modal-box">
       <button id="modal-close" class="close" aria-label="Close">&times;</button>
@@ -295,17 +338,14 @@
     </div>
   </div>
 
-  <div id="toast" class="toast hidden"></div>
+  <div id="toast" class="toast hidden" role="status"></div>
 
   <footer>
-    SmartPark prototype &middot; Demo payment only &middot; Map data &copy; OpenStreetMap contributors
+    SmartPark prototype &middot; Demo OTP and demo payment only &middot; Map data &copy; OpenStreetMap contributors
     <br><button id="btn-reset" class="linkbtn hidden">Reset demo data</button>
   </footer>
 
   <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
-  <script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-app-compat.js"></script>
-  <script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-auth-compat.js"></script>
-  <script src="config.js"></script>
   <script src="auth.js"></script>
   <script src="app.js"></script>
 </body>

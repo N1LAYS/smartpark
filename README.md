@@ -15,47 +15,35 @@ Built for the **vihaanX Hackathon** at DTU.
 
 A location-based marketplace with two sides:
 
-- **Drivers** find nearby spaces on a map, compare price and details, book a time slot, pay and check in with an OTP.
+- **Drivers** search any address on a map, compare price and details, book a time slot, pay and check in with an OTP.
 - **Owners** list a space with price and available hours, and track bookings and earnings.
 
 ## Features in this prototype
 
-- Map-based search with filters (vehicle type, space type, max price) and sorting by distance or price
+- **Address search bar**: type any area, landmark or address (powered by OpenStreetMap) and the map and results jump to that place. Matching parking spaces are suggested too.
+- Map with price pins, filters (vehicle type, space type, max price, distance) and sorting by distance or price
 - "Use my location" to find spaces near you
-- Owner listing form with a map picker
+- Owner listing form with an address search and a map picker
 - **Complex / Society Parking** listing type: gate, slot number (revealed only after booking), visitor entry process and management approval status
 - Time-slot booking with **double-booking prevention** and availability hours
+- **Demo payment flow**: choose UPI / Card / Net banking / Wallet, a processing screen, then a receipt with a transaction ID (no real money is charged)
 - Price breakdown with the 15% platform commission (owner gets 85%)
-- Demo payment, booking confirmation, OTP check-in, cancellation
+- Booking OTP check-in, free cancellation before the start time
 - Dashboards for drivers (bookings) and owners (listings, bookings received, earnings)
-- **Separate login / sign up for drivers and owners** (see below)
+- **Separate login / sign up for drivers and owners** with a phone number and a demo OTP
 
-## Login system (phone number + OTP)
+## Login system (phone number + demo OTP)
 
 1. Choose **Find Parking** (driver) or **List a Space** (owner).
-2. Enter your mobile number and tap **Send OTP**.
-3. Enter the 6-digit OTP.
-4. First time only: enter your **name** and **location** (area/city, plus optional GPS). Returning users skip this step.
+2. Enter any valid 10-digit mobile number and tap **Send OTP**.
+3. The 6-digit OTP is **shown on screen** (no SMS is sent). Tap "Fill it in for me" or type it.
+4. First time only: enter your **name** and **area**. Returning users skip this step.
 5. A parking barrier lifts, a car drives through, and the app fades in.
 
 - Driver and owner accounts are separate. The same phone number can be used once on each side.
-- Drivers only see Find Parking and My Bookings. Owners only see List a Space and My Listings. Each person only sees their own bookings or listings.
-- Your saved location is where the map starts. The session survives a page reload until you press Log out.
-- Accounts (name, location, bookings, listings) are stored in this browser's localStorage, so they are not shared between devices yet. Only the OTP check is real.
-
-### Real SMS OTP (Firebase, free to set up)
-
-Until you add keys in `config.js`, the app is in **demo mode** (the OTP is shown on screen). To send real SMS:
-
-1. Go to https://console.firebase.google.com and create a project.
-2. Open **Build > Authentication > Get started > Sign-in method**, and enable **Phone**.
-3. Open **Project settings > General > Your apps**, add a **Web app** (`</>`), and copy the `firebaseConfig` values (`apiKey`, `authDomain`, `projectId`, `appId`) into `config.js`.
-4. Open **Authentication > Settings > Authorized domains** and add `127.0.0.1` (for Live Server). `localhost` is already there. When you deploy, add your Vercel or GitHub Pages domain too.
-5. Run the site through **Live Server** (`http://127.0.0.1:5500`). Real SMS does not work when you double-click `index.html`.
-
-Testing without sending SMS: in **Authentication > Sign-in method > Phone > Phone numbers for testing**, add a number and a fixed code (for example `9876543210` and `123456`). Logging in with that number needs no SMS.
-
-Real SMS to Indian numbers can be limited on Firebase's free plan, so Firebase may ask you to switch the project to the pay-as-you-go (Blaze) plan. Check their current pricing page for the free monthly SMS allowance. If you prefer another provider (MSG91, Twilio Verify, Supabase phone login), only `requestOtp` and `verifyOtp` in `auth.js` need to change.
+- Drivers only see Find Parking and My Bookings. Owners only see List a Space and My Listings.
+- Accounts, listings and bookings are stored in this browser's localStorage, so they are not shared between devices yet.
+- To switch between a driver and an owner during a demo, press **Log out** and log in on the other side. Both accounts live in the same browser, so a booking made by a driver appears in the owner's "Bookings received" if the driver booked one of that owner's listings.
 
 ## Business model
 
@@ -69,14 +57,14 @@ Future revenue: monthly commuter passes, featured listings, society/office manag
 
 ## Tech stack
 
-This prototype: plain HTML, CSS and JavaScript, Leaflet and OpenStreetMap for maps, browser localStorage for data.
+This prototype: plain HTML, CSS and JavaScript, Leaflet with OpenStreetMap / CARTO map tiles, OpenStreetMap Nominatim for address search, browser localStorage for data. No build step and no API keys.
 
-Planned production stack: React Native, Node.js + Express, Supabase (PostgreSQL, Auth, Storage), Razorpay payments, Firebase Cloud Messaging.
+Planned production stack: React Native, Node.js + Express, Supabase (PostgreSQL, Auth, Storage), Razorpay payments, real SMS OTP, Firebase Cloud Messaging.
 
 ## Run it on your computer
 
 1. Download or clone this repository.
-2. Open the folder in VS Code and run `index.html` with the **Live Server** extension (internet is needed for the map and for SMS login).
+2. Double-click `index.html`, or open the folder in VS Code and run it with the **Live Server** extension. Internet is needed for the map and the address search.
 
 ## Put it online (free)
 
@@ -87,13 +75,13 @@ Planned production stack: React Native, Node.js + Express, Supabase (PostgreSQL,
 ## Important notes
 
 - Spaces shown are **demo data** with approximate locations.
-- Payments are a **demo flow only**. No real money is charged.
+- The OTP login and the payment are **demos only**. No SMS is sent and no real money is charged.
 - GPS helps find parking but cannot prove a car is in the right space, so check-in uses an OTP (QR or owner confirmation can be added next).
-- All data is stored in your own browser, so each user sees their own bookings.
+- Address search uses the free OpenStreetMap Nominatim service, which is meant for light use.
 
 ## Roadmap
 
-- Real SMS OTP login with Supabase Auth (replace `auth.js`) and a shared database
+- Real SMS OTP login (Supabase Auth, Firebase or MSG91) and a shared database
 - Real payments with Razorpay (test mode first)
 - Owner identity and property verification
 - Ratings, reviews and dispute handling
