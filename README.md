@@ -57,7 +57,7 @@ Future revenue: monthly commuter passes, featured listings, society/office manag
 
 ## Tech stack
 
-This prototype: plain HTML, CSS and JavaScript, Leaflet with OpenStreetMap / CARTO map tiles, OpenStreetMap Nominatim for address search, browser localStorage for data. No build step and no API keys.
+This prototype: plain HTML, CSS and JavaScript, Leaflet with OpenStreetMap map tiles (Esri as an automatic backup), OpenStreetMap Nominatim for address search, browser localStorage for data. No build step and no API keys.
 
 Planned production stack: React Native, Node.js + Express, Supabase (PostgreSQL, Auth, Storage), Razorpay payments, real SMS OTP, Firebase Cloud Messaging.
 

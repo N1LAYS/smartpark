@@ -12,8 +12,14 @@
   var COMMISSION = 0.15;                            // 15% platform commission
   var KEY_S = 'smartpark_spaces_v1';
   var KEY_B = 'smartpark_bookings_v1';
-  var TILE_URL = 'https://{s}.basemaps.cartocdn.com/light_all/{z}/{x}/{y}{r}.png';
-  var TILE_ATTR = '&copy; OpenStreetMap contributors &copy; CARTO';
+  // Map tiles: OpenStreetMap first. If its tiles fail to load (blocked, offline file, etc.),
+  // the map switches by itself to a second free provider. No API key is needed for either.
+  var TILE_SOURCES = [
+    { url: 'https://tile.openstreetmap.org/{z}/{x}/{y}.png',
+      opts: { maxZoom: 19, attribution: '&copy; OpenStreetMap contributors', referrerPolicy: 'origin' } },
+    { url: 'https://server.arcgisonline.com/ArcGIS/rest/services/World_Street_Map/MapServer/tile/{z}/{y}/{x}',
+      opts: { maxZoom: 19, attribution: 'Tiles &copy; Esri' } }
+  ];
   var HOURS = [1, 2, 3, 4, 6, 8, 10, 12];
   var METHODS = [
     { id: 'upi', name: 'UPI', sub: 'Pay with any UPI app', ico: 'UPI' },
@@ -159,7 +165,20 @@
   /* ---------- maps ---------- */
   function makeMap(elId, center, zoom) {
     var m = L.map(elId).setView(center, zoom);
-    L.tileLayer(TILE_URL, { maxZoom: 19, subdomains: 'abcd', attribution: TILE_ATTR }).addTo(m);
+    var idx = 0, loaded = false, errors = 0;
+    function addTiles() {
+      var src = TILE_SOURCES[idx];
+      var layer = L.tileLayer(src.url, src.opts);
+      layer.on('tileload', function () { loaded = true; });
+      layer.on('tileerror', function () {
+        errors++;
+        if (!loaded && errors >= 3 && idx < TILE_SOURCES.length - 1) {   // switch to the backup provider
+          m.removeLayer(layer); idx++; errors = 0; addTiles();
+        }
+      });
+      layer.addTo(m);
+    }
+    addTiles();
     return m;
   }
   function pinIcon(html) { return L.divIcon({ className: 'pin-wrap', html: html, iconSize: [0, 0] }); }
