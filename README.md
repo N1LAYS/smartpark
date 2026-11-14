@@ -28,6 +28,34 @@ A location-based marketplace with two sides:
 - Price breakdown with the 15% platform commission (owner gets 85%)
 - Demo payment, booking confirmation, OTP check-in, cancellation
 - Dashboards for drivers (bookings) and owners (listings, bookings received, earnings)
+- **Separate login / sign up for drivers and owners** (see below)
+
+## Login system (phone number + OTP)
+
+1. Choose **Find Parking** (driver) or **List a Space** (owner).
+2. Enter your mobile number and tap **Send OTP**.
+3. Enter the 6-digit OTP.
+4. First time only: enter your **name** and **location** (area/city, plus optional GPS). Returning users skip this step.
+5. A parking barrier lifts, a car drives through, and the app fades in.
+
+- Driver and owner accounts are separate. The same phone number can be used once on each side.
+- Drivers only see Find Parking and My Bookings. Owners only see List a Space and My Listings. Each person only sees their own bookings or listings.
+- Your saved location is where the map starts. The session survives a page reload until you press Log out.
+- Accounts (name, location, bookings, listings) are stored in this browser's localStorage, so they are not shared between devices yet. Only the OTP check is real.
+
+### Real SMS OTP (Firebase, free to set up)
+
+Until you add keys in `config.js`, the app is in **demo mode** (the OTP is shown on screen). To send real SMS:
+
+1. Go to https://console.firebase.google.com and create a project.
+2. Open **Build > Authentication > Get started > Sign-in method**, and enable **Phone**.
+3. Open **Project settings > General > Your apps**, add a **Web app** (`</>`), and copy the `firebaseConfig` values (`apiKey`, `authDomain`, `projectId`, `appId`) into `config.js`.
+4. Open **Authentication > Settings > Authorized domains** and add `127.0.0.1` (for Live Server). `localhost` is already there. When you deploy, add your Vercel or GitHub Pages domain too.
+5. Run the site through **Live Server** (`http://127.0.0.1:5500`). Real SMS does not work when you double-click `index.html`.
+
+Testing without sending SMS: in **Authentication > Sign-in method > Phone > Phone numbers for testing**, add a number and a fixed code (for example `9876543210` and `123456`). Logging in with that number needs no SMS.
+
+Real SMS to Indian numbers can be limited on Firebase's free plan, so Firebase may ask you to switch the project to the pay-as-you-go (Blaze) plan. Check their current pricing page for the free monthly SMS allowance. If you prefer another provider (MSG91, Twilio Verify, Supabase phone login), only `requestOtp` and `verifyOtp` in `auth.js` need to change.
 
 ## Business model
 
@@ -48,7 +76,7 @@ Planned production stack: React Native, Node.js + Express, Supabase (PostgreSQL,
 ## Run it on your computer
 
 1. Download or clone this repository.
-2. Double-click `index.html` to open it in your browser (internet is needed for the map).
+2. Open the folder in VS Code and run `index.html` with the **Live Server** extension (internet is needed for the map and for SMS login).
 
 ## Put it online (free)
 
@@ -65,7 +93,7 @@ Planned production stack: React Native, Node.js + Express, Supabase (PostgreSQL,
 
 ## Roadmap
 
-- Supabase login and a shared database
+- Real SMS OTP login with Supabase Auth (replace `auth.js`) and a shared database
 - Real payments with Razorpay (test mode first)
 - Owner identity and property verification
 - Ratings, reviews and dispute handling

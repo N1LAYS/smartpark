@@ -16,12 +16,113 @@
         <p>Your Space. Someone's Parking.</p>
       </div>
     </div>
-    <nav>
-      <button class="tab active" data-tab="find">Find Parking</button>
-      <button class="tab" data-tab="owner">List a Space</button>
-      <button class="tab" data-tab="dash">My Bookings</button>
+    <nav id="nav" class="hidden">
+      <button class="tab" data-tab="find" data-role="driver">Find Parking</button>
+      <button class="tab" data-tab="dash" data-role="driver">My Bookings</button>
+      <button class="tab" data-tab="owner" data-role="owner">List a Space</button>
+      <button class="tab" data-tab="listings" data-role="owner">My Listings</button>
     </nav>
+    <div id="userbar" class="userbar hidden">
+      <span id="user-label"></span>
+      <button id="btn-logout" class="btn small light">Log out</button>
+    </div>
   </header>
+
+  <!-- ============ LOGIN / SIGN UP ============ -->
+  <div id="auth" class="auth">
+    <div class="auth-box">
+      <!-- road progress: the car drives to the next stop as you move through the steps -->
+      <div id="road" class="road hidden" aria-hidden="true">
+        <div class="road-lane"></div>
+        <div class="road-stop" data-s="phone" style="left:12%"><i>P</i><small>Mobile</small></div>
+        <div class="road-stop" data-s="otp" style="left:50%"><i>P</i><small>OTP</small></div>
+        <div class="road-stop" data-s="profile" style="left:88%"><i>P</i><small>About you</small></div>
+        <span id="road-car" class="road-car">&#128663;</span>
+      </div>
+
+      <!-- step 1: choose which side -->
+      <div id="auth-pick">
+        <h2>Welcome to SmartPark</h2>
+        <p class="note">Choose how you want to use SmartPark. Drivers and owners have separate accounts.</p>
+        <div class="role-pick">
+          <button type="button" class="role-card" data-pick="driver">
+            <span class="role-icon">&#128663;</span>
+            <strong>Find Parking</strong>
+            <span>I am a driver looking for a space</span>
+          </button>
+          <button type="button" class="role-card" data-pick="owner">
+            <span class="role-icon">&#127968;</span>
+            <strong>List a Space</strong>
+            <span>I own a space and want to earn</span>
+          </button>
+        </div>
+      </div>
+
+      <!-- step 2: phone number -->
+      <div id="auth-phone-wrap" class="hidden">
+        <button type="button" id="auth-back" class="linkbtn">&larr; Change</button>
+        <h2 id="auth-title"></h2>
+        <p class="note">Log in or sign up with your mobile number. We will send you an OTP.</p>
+        <form id="phone-form" class="form" novalidate>
+          <label>Mobile number
+            <div class="phone-row"><span class="prefix">+91</span>
+              <input id="a-phone" type="tel" inputmode="numeric" maxlength="14" autocomplete="tel-national" placeholder="98765 43210" />
+            </div>
+          </label>
+          <p class="err" id="a-err" role="alert"></p>
+          <button type="submit" class="btn primary" id="a-send">Send OTP</button>
+        </form>
+      </div>
+
+      <!-- step 3: OTP -->
+      <div id="auth-otp-wrap" class="hidden">
+        <button type="button" id="otp-back" class="linkbtn">&larr; Change number</button>
+        <h2>Enter the OTP</h2>
+        <p class="note">Sent to <strong id="otp-phone"></strong></p>
+        <div id="demo-otp" class="demo-otp hidden"></div>
+        <p id="otp-hint" class="note"></p>
+        <form id="otp-form" class="form" novalidate>
+          <label>6-digit OTP
+            <input id="a-otp" class="otp-input" inputmode="numeric" maxlength="6" autocomplete="one-time-code" placeholder="------" />
+          </label>
+          <p class="err" id="o-err" role="alert"></p>
+          <button type="submit" class="btn primary" id="a-verify">Verify and continue</button>
+          <button type="button" class="linkbtn" id="a-resend">Resend OTP</button>
+        </form>
+      </div>
+
+      <!-- step 4 (first time only): name + location -->
+      <div id="auth-profile-wrap" class="hidden">
+        <h2>Tell us about you</h2>
+        <p class="note" id="profile-note">Just two quick details to finish setting up your account.</p>
+        <form id="profile-form" class="form" novalidate>
+          <label>Your name
+            <input id="p-name" maxlength="60" autocomplete="name" placeholder="e.g. Rahul Sharma" />
+          </label>
+          <label>Area / city
+            <input id="p-area" maxlength="100" autocomplete="address-level2" placeholder="e.g. Rohini, Delhi" />
+          </label>
+          <button type="button" id="p-locate" class="btn secondary">Use my current location</button>
+          <p class="note" id="p-coords">GPS location not added (optional, but it makes search and the map more accurate).</p>
+          <p class="err" id="p-err" role="alert"></p>
+          <button type="submit" class="btn primary">Finish</button>
+        </form>
+      </div>
+    </div>
+  </div>
+
+  <div id="recaptcha-container"></div>
+
+  <!-- ============ ENTRY TRANSITION: parking barrier opens, car drives in ============ -->
+  <div id="gate" class="gate hidden" aria-hidden="true">
+    <div class="gate-card">
+      <span class="logo big">P</span>
+      <h2 id="gate-title">Welcome</h2>
+      <p id="gate-sub">Your Space. Someone's Parking.</p>
+    </div>
+    <div class="gate-barrier"><div class="gate-post"></div><div class="gate-arm"></div></div>
+    <div class="gate-road"><span class="gate-car">&#128663;</span></div>
+  </div>
 
   <main>
     <!-- ============ DRIVER: FIND PARKING ============ -->
@@ -138,18 +239,19 @@
     <!-- ============ DASHBOARD ============ -->
     <section id="tab-dash" class="panel">
       <div class="dash-head">
-        <h2>My Bookings (Driver)</h2>
+        <h2>My Bookings</h2>
       </div>
       <div id="my-bookings"></div>
+    </section>
 
-      <h2>My Listings and Earnings (Owner)</h2>
+    <!-- ============ OWNER: LISTINGS AND EARNINGS ============ -->
+    <section id="tab-listings" class="panel">
+      <h2>My Listings and Earnings</h2>
       <div id="earnings" class="earnings"></div>
       <div id="my-listings"></div>
 
       <h3>Bookings received</h3>
       <div id="received"></div>
-
-      <p><button id="btn-reset" class="btn danger">Reset demo data</button></p>
     </section>
   </main>
 
@@ -165,9 +267,14 @@
 
   <footer>
     SmartPark prototype &middot; Demo payment only &middot; Map data &copy; OpenStreetMap contributors
+    <br><button id="btn-reset" class="linkbtn hidden">Reset demo data</button>
   </footer>
 
   <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
+  <script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-app-compat.js"></script>
+  <script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-auth-compat.js"></script>
+  <script src="config.js"></script>
+  <script src="auth.js"></script>
   <script src="app.js"></script>
 </body>
 </html>

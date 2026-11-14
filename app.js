@@ -87,18 +87,24 @@
   var usingRealLocation = false;
 
   /* ---------- tabs ---------- */
+  var me = null; // the logged-in user ({id, role, name, email, phone}) or null
+  var ROLE_TABS = { driver: ['find', 'dash'], owner: ['owner', 'listings'] };
+  var ALL_TABS = ['find', 'dash', 'owner', 'listings'];
   var tabButtons = document.querySelectorAll('.tab');
   function showTab(name) {
+    // a driver can never open owner screens (and the other way round)
+    if (!me || ROLE_TABS[me.role].indexOf(name) === -1) { return; }
     tabButtons.forEach(function (b) { b.classList.toggle('active', b.getAttribute('data-tab') === name); });
-    ['find', 'owner', 'dash'].forEach(function (t) {
+    ALL_TABS.forEach(function (t) {
       $('tab-' + t).classList.toggle('active', t === name);
     });
     // Leaflet needs a size refresh when its container becomes visible
     setTimeout(function () {
       if (name === 'find' && map) { map.invalidateSize(); }
-      if (name === 'owner') { initOwnerMap(); ownerMap.invalidateSize(); }
+      if (name === 'owner') { initOwnerMap(); if (ownerMap) { ownerMap.invalidateSize(); } }
     }, 60);
-    if (name === 'dash') { renderDashboard(); }
+    if (name === 'dash') { renderDriverDash(); }
+    if (name === 'listings') { renderOwnerDash(); }
   }
   tabButtons.forEach(function (b) {
     b.addEventListener('click', function () { showTab(b.getAttribute('data-tab')); });
@@ -215,7 +221,7 @@
 
   function openBooking(id) {
     var s = findSpace(id);
-    if (!s) { return; }
+    if (!s || !me || me.role !== 'driver') { return; }
     var cx = '';
     if (s.complex) {
       cx = '<div class="bill"><strong>Society details</strong>' +
@@ -291,7 +297,7 @@
 
       var total = p.hrs * s.price;
       var b = {
-        id: 'b' + Date.now(), spaceId: s.id, spaceTitle: s.title, address: s.address,
+        id: 'b' + Date.now(), driverId: me.id, driverName: me.name, spaceId: s.id, spaceTitle: s.title, address: s.address,
         start: p.start, end: p.end, hours: p.hrs, vehicleNo: veh,
         total: total, fee: Math.round(total * COMMISSION * 100) / 100, ownerPayout: Math.round(total * (1 - COMMISSION) * 100) / 100,
         otp: String(Math.floor(1000 + Math.random() * 9000)), status: 'confirmed',
@@ -327,7 +333,7 @@
 
   function initOwnerMap() {
     if (ownerMap || typeof L === 'undefined') { return; }
-    ownerMap = L.map('owner-map').setView(DEFAULT_CENTER, 14);
+    ownerMap = L.map('owner-map').setView(me && me.lat != null ? [me.lat, me.lng] : DEFAULT_CENTER, 14);
     L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
       maxZoom: 19, attribution: '&copy; OpenStreetMap contributors'
     }).addTo(ownerMap);
@@ -349,6 +355,7 @@
 
   $('owner-form').addEventListener('submit', function (e) {
     e.preventDefault();
+    if (!me || me.role !== 'owner') { return; }
     if (!ownerPos) { toast('Please pick a location on the map first'); return; }
     var from = parseInt($('o-from').value, 10), to = parseInt($('o-to').value, 10);
     if (isNaN(from) || isNaN(to) || to <= from) { toast('Available "until" hour must be after "from" hour'); return; }
@@ -357,7 +364,7 @@
       id: 's' + Date.now(), title: $('o-title').value.trim(), type: type, address: $('o-address').value.trim(),
       lat: ownerPos[0], lng: ownerPos[1], vehicle: $('o-vehicle').value, dim: $('o-dim').value.trim(),
       price: parseFloat($('o-price').value), from: from, to: to, notes: $('o-notes').value.trim() || 'Contact owner on arrival.',
-      owner: true, status: 'live', rating: 0
+      ownerId: me.id, ownerName: me.name, ownerPhone: me.phone, status: 'live', rating: 0
     };
     if (type === 'complex') {
       var approval = $('o-approval').value;
@@ -378,13 +385,14 @@
     $('o-coords').textContent = 'No location chosen yet.';
     toast(s.status === 'live' ? 'Listing published!' : 'Saved. It will go live after management approval.');
     renderFind();
-    showTab('dash');
+    showTab('listings');
   });
 
-  /* ---------- dashboard ---------- */
-  function renderDashboard() {
-    // driver bookings
-    var mine = bookings.slice().sort(function (a, b) { return b.start - a.start; });
+  /* ---------- driver dashboard ---------- */
+  function renderDriverDash() {
+    if (!me || me.role !== 'driver') { return; }
+    var mine = bookings.filter(function (b) { return b.driverId === me.id; })
+      .sort(function (a, b) { return b.start - a.start; });
     $('my-bookings').innerHTML = mine.length ? mine.map(function (b) {
       var badge = { confirmed: 'ok', 'checked-in': 'ok', cancelled: 'bad' }[b.status] || '';
       var actions = '';
@@ -404,24 +412,29 @@
     $('my-bookings').querySelectorAll('[data-checkin]').forEach(function (btn) {
       btn.addEventListener('click', function () {
         var id = btn.getAttribute('data-checkin');
-        var b = bookings.filter(function (x) { return x.id === id; })[0];
+        var b = bookings.filter(function (x) { return x.id === id && x.driverId === me.id; })[0];
+        if (!b) { return; }
         if ($('otp-' + id).value.trim() === b.otp) {
-          b.status = 'checked-in'; save(KEY_B, bookings); toast('Checked in. Enjoy your parking!'); renderDashboard();
+          b.status = 'checked-in'; save(KEY_B, bookings); toast('Checked in. Enjoy your parking!'); renderDriverDash();
         } else { toast('Wrong OTP'); }
       });
     });
     $('my-bookings').querySelectorAll('[data-cancel]').forEach(function (btn) {
       btn.addEventListener('click', function () {
         var id = btn.getAttribute('data-cancel');
-        var b = bookings.filter(function (x) { return x.id === id; })[0];
+        var b = bookings.filter(function (x) { return x.id === id && x.driverId === me.id; })[0];
         if (b && window.confirm('Cancel this booking?')) {
-          b.status = 'cancelled'; save(KEY_B, bookings); toast('Booking cancelled (demo refund issued)'); renderDashboard(); renderFind();
+          b.status = 'cancelled'; save(KEY_B, bookings); toast('Booking cancelled (demo refund issued)'); renderDriverDash(); renderFind();
         }
       });
     });
+  }
 
-    // owner part: listings created in this browser
-    var myListings = spaces.filter(function (s) { return s.owner; });
+  /* ---------- owner dashboard ---------- */
+  function renderOwnerDash() {
+    if (!me || me.role !== 'owner') { return; }
+    // only the listings this owner created
+    var myListings = spaces.filter(function (s) { return s.ownerId === me.id; });
     var myIds = myListings.map(function (s) { return s.id; });
     var received = bookings.filter(function (b) { return myIds.indexOf(b.spaceId) !== -1; });
     var active = received.filter(function (b) { return b.status !== 'cancelled'; });
@@ -447,21 +460,22 @@
     $('my-listings').querySelectorAll('[data-approve]').forEach(function (btn) {
       btn.addEventListener('click', function () {
         var s = findSpace(btn.getAttribute('data-approve'));
-        if (s) { s.status = 'live'; if (s.complex) { s.complex.approval = 'approved'; } save(KEY_S, spaces); toast('Approved. Listing is live.'); renderDashboard(); renderFind(); }
+        if (s && s.ownerId === me.id) { s.status = 'live'; if (s.complex) { s.complex.approval = 'approved'; } save(KEY_S, spaces); toast('Approved. Listing is live.'); renderOwnerDash(); renderFind(); }
       });
     });
     $('my-listings').querySelectorAll('[data-remove]').forEach(function (btn) {
       btn.addEventListener('click', function () {
         var id = btn.getAttribute('data-remove');
         if (window.confirm('Remove this listing?')) {
-          spaces = spaces.filter(function (s) { return s.id !== id; }); save(KEY_S, spaces); renderDashboard(); renderFind();
+          spaces = spaces.filter(function (s) { return !(s.id === id && s.ownerId === me.id); }); save(KEY_S, spaces); renderOwnerDash(); renderFind();
         }
       });
     });
 
     $('received').innerHTML = received.length ? received.map(function (b) {
       return '<div class="card"><h4>' + esc(b.spaceTitle) + ' <span class="badge">' + esc(b.status) + '</span></h4>' +
-        '<div class="meta">' + esc(fmtTime(b.start)) + ' to ' + esc(fmtTime(b.end)) + ' &middot; Vehicle ' + esc(b.vehicleNo) + '</div>' +
+        '<div class="meta">' + esc(fmtTime(b.start)) + ' to ' + esc(fmtTime(b.end)) + ' &middot; Vehicle ' + esc(b.vehicleNo) +
+        (b.driverName ? ' &middot; Driver ' + esc(b.driverName) : '') + '</div>' +
         '<div class="meta">You earn ' + money(b.ownerPayout) + ' (booking ' + money(b.total) + ')</div></div>';
     }).join('') : '<p class="note">No bookings received yet.</p>';
   }
@@ -470,11 +484,230 @@
     if (window.confirm('This clears all your listings and bookings and restores the demo data. Continue?')) {
       spaces = seedSpaces(); bookings = [];
       save(KEY_S, spaces); save(KEY_B, bookings);
-      renderFind(); renderDashboard(); toast('Demo data restored');
+      renderFind(); renderDriverDash(); renderOwnerDash(); toast('Demo data restored');
     }
   });
+
+  /* ---------- login screen: phone + OTP, then name + location (first time) ---------- */
+  var authRole = null;      // 'driver' or 'owner'
+  var authPhone = '';       // number the OTP was sent to
+  var profilePos = null;    // GPS position picked on the profile step
+  var resendTimer = null;
+  var gateTimers = [];
+  var AUTH_ORDER = ['pick', 'phone', 'otp', 'profile'];
+  var ROAD_POS = { phone: 12, otp: 50, profile: 88 };   // where the car parks on the road tracker
+  var lastStepIdx = 0;
+
+  function stepEl(n) { return $('auth-' + n + (n === 'pick' ? '' : '-wrap')); }
+  function prefersReducedMotion() {
+    return !!(window.matchMedia && window.matchMedia('(prefers-reduced-motion: reduce)').matches);
+  }
+
+  // Slide to another step; the little car on the road drives to the matching stop.
+  function showAuthStep(step) {
+    var idx = AUTH_ORDER.indexOf(step);
+    AUTH_ORDER.forEach(function (n) { stepEl(n).classList.toggle('hidden', n !== step); });
+    var el = stepEl(step);
+    el.classList.remove('step-fwd', 'step-back');
+    void el.offsetWidth;                                  // restart the animation
+    el.classList.add(idx >= lastStepIdx ? 'step-fwd' : 'step-back');
+    lastStepIdx = idx;
+
+    var road = $('road');
+    road.classList.toggle('hidden', step === 'pick');
+    if (ROAD_POS[step] != null) { $('road-car').style.left = ROAD_POS[step] + '%'; }
+    road.querySelectorAll('.road-stop').forEach(function (st) {
+      var i = AUTH_ORDER.indexOf(st.getAttribute('data-s'));
+      st.classList.toggle('done', i < idx);
+      st.classList.toggle('here', i === idx);
+    });
+  }
+
+  function startResendCountdown(sec) {
+    var btn = $('a-resend');
+    clearInterval(resendTimer);
+    btn.disabled = true;
+    var left = sec;
+    function tick() {
+      if (left <= 0) { clearInterval(resendTimer); btn.disabled = false; btn.textContent = 'Resend OTP'; return; }
+      btn.textContent = 'Resend OTP in ' + left + 's'; left--;
+    }
+    tick();
+    resendTimer = setInterval(tick, 1000);
+  }
+  function showOtpStep(res) {
+    authPhone = res.phone;
+    $('otp-phone').textContent = res.phone;
+    var box = $('demo-otp');
+    if (res.demo) {
+      box.innerHTML = 'Demo mode: no SMS is sent. Your OTP is<b>' + esc(res.demoOtp) + '</b>';
+      box.classList.remove('hidden');
+    } else {
+      box.classList.add('hidden');
+    }
+    $('otp-hint').textContent = res.demo ? '' : 'We sent a 6-digit code by SMS. It can take up to a minute to arrive.';
+    $('a-otp').value = ''; $('o-err').textContent = '';
+    showAuthStep('otp');
+    startResendCountdown(res.resendIn);
+    setTimeout(function () { $('a-otp').focus(); }, 300);
+  }
+  function busy(btn, on, label) {
+    btn.disabled = on;
+    if (label) { btn.dataset.label = btn.dataset.label || btn.textContent; btn.textContent = on ? label : btn.dataset.label; }
+  }
+
+  document.querySelectorAll('[data-pick]').forEach(function (b) {
+    b.addEventListener('click', function () {
+      authRole = b.getAttribute('data-pick');
+      $('auth-title').textContent = authRole === 'driver' ? 'Driver - Find Parking' : 'Owner - List a Space';
+      $('a-phone').value = ''; $('a-err').textContent = '';
+      showAuthStep('phone');
+      setTimeout(function () { $('a-phone').focus(); }, 300);
+    });
+  });
+  $('auth-back').addEventListener('click', function () { authRole = null; showAuthStep('pick'); });
+  $('otp-back').addEventListener('click', function () { clearInterval(resendTimer); showAuthStep('phone'); });
+
+  $('phone-form').addEventListener('submit', function (e) {
+    e.preventDefault();
+    var btn = $('a-send');
+    $('a-err').textContent = '';
+    busy(btn, true, 'Sending OTP...');
+    SmartAuth.requestOtp(authRole, $('a-phone').value).then(function (res) {
+      busy(btn, false, true);
+      if (!res.ok) { $('a-err').textContent = res.error; return; }
+      showOtpStep(res);
+    });
+  });
+  $('a-resend').addEventListener('click', function () {
+    $('o-err').textContent = '';
+    SmartAuth.requestOtp(authRole, authPhone).then(function (res) {
+      if (!res.ok) { $('o-err').textContent = res.error; return; }
+      showOtpStep(res);
+      toast('New OTP sent');
+    });
+  });
+  $('otp-form').addEventListener('submit', function (e) {
+    e.preventDefault();
+    var btn = $('a-verify');
+    $('o-err').textContent = '';
+    busy(btn, true, 'Checking...');
+    SmartAuth.verifyOtp(authRole, authPhone, $('a-otp').value).then(function (res) {
+      busy(btn, false, true);
+      if (!res.ok) { $('o-err').textContent = res.error; return; }
+      clearInterval(resendTimer);
+      if (res.user.profileComplete) { enterApp(res.user); }   // returning user: straight in
+      else { beginProfile(res.user); }                          // new user: name + location first
+    });
+  });
+
+  // first-time profile: name + location
+  $('p-locate').addEventListener('click', function () {
+    locate(function (p) {
+      profilePos = p;
+      $('p-coords').textContent = 'GPS location added: ' + p[0].toFixed(4) + ', ' + p[1].toFixed(4);
+    });
+  });
+  $('profile-form').addEventListener('submit', function (e) {
+    e.preventDefault();
+    var res = SmartAuth.saveProfile({
+      name: $('p-name').value, area: $('p-area').value,
+      lat: profilePos ? profilePos[0] : null, lng: profilePos ? profilePos[1] : null
+    });
+    if (!res.ok) { $('p-err').textContent = res.error; return; }
+    $('p-err').textContent = '';
+    enterApp(res.user);
+  });
+
+  function beginProfile(user) {
+    me = user;
+    profilePos = null;
+    $('p-name').value = ''; $('p-area').value = ''; $('p-err').textContent = '';
+    $('p-coords').textContent = 'GPS location not added (optional, but it makes search and the map more accurate).';
+    showAuthStep('profile');
+    $('auth').classList.remove('hidden');
+    setTimeout(function () { $('p-name').focus(); }, 300);
+  }
+
+  // Show the app (no animation). Used directly on page load when you are already logged in.
+  function revealApp() {
+    $('auth').classList.add('hidden');
+    $('nav').classList.remove('hidden');
+    $('userbar').classList.remove('hidden');
+    $('btn-reset').classList.remove('hidden');
+    $('user-label').innerHTML = esc(me.name) + '<span class="role-tag">' + (me.role === 'driver' ? 'Driver' : 'Owner') + '</span>';
+    tabButtons.forEach(function (b) {
+      b.classList.toggle('hidden', b.getAttribute('data-role') !== me.role);
+    });
+    // start the map at the user's saved location
+    if (me.lat != null && me.lng != null) {
+      userPos = [me.lat, me.lng];
+      $('loc-note').textContent = 'Showing spaces near ' + (me.area || 'your saved location') + '.';
+      if (map) { map.setView(userPos, 14); }
+    } else {
+      $('loc-note').textContent = 'Showing demo spaces near DTU. Tap "Use my location" to search around you.';
+    }
+    renderFind();
+    showTab(ROLE_TABS[me.role][0]);
+  }
+
+  // Entry transition: a parking barrier lifts, a car drives through, then the app fades in.
+  function enterApp(user) {
+    me = user;
+    if (prefersReducedMotion()) { revealApp(); return; }
+    var g = $('gate');
+    gateTimers.forEach(clearTimeout); gateTimers = [];
+    var first = (me.name || '').split(' ')[0] || 'there';
+    $('gate-title').textContent = 'Welcome, ' + first + '!';
+    $('gate-sub').textContent = me.role === 'driver' ? "Let's find you a spot." : "Let's put your space to work.";
+    g.classList.remove('hidden', 'show', 'run', 'out');
+    void g.offsetWidth;
+    g.classList.add('show', 'run');
+    gateTimers.push(setTimeout(revealApp, 450));                       // app is built behind the gate
+    gateTimers.push(setTimeout(function () {
+      g.classList.add('out');
+      document.body.classList.remove('app-in'); void document.body.offsetWidth;
+      document.body.classList.add('app-in');
+    }, 2300));
+    gateTimers.push(setTimeout(function () { g.classList.add('hidden'); g.classList.remove('show', 'run', 'out'); }, 2900));
+  }
+
+  // Page load with an existing session.
+  function startSession(user) {
+    me = user;
+    if (!user.profileComplete) { beginProfile(user); } else { revealApp(); }
+  }
+
+  function endSession() {
+    SmartAuth.logout();
+    me = null;
+    clearInterval(resendTimer);
+    gateTimers.forEach(clearTimeout); gateTimers = [];
+    $('gate').classList.add('hidden'); $('gate').classList.remove('show', 'run', 'out');
+    document.body.classList.remove('app-in');
+    ALL_TABS.forEach(function (t) { $('tab-' + t).classList.remove('active'); });
+    closeModal();
+    $('nav').classList.add('hidden');
+    $('userbar').classList.add('hidden');
+    $('btn-reset').classList.add('hidden');
+    // clear anything half-typed by the previous user
+    $('owner-form').reset();
+    $('complex-fields').classList.add('hidden');
+    ownerPos = null;
+    if (ownerMarker && ownerMap) { ownerMap.removeLayer(ownerMarker); ownerMarker = null; }
+    $('o-coords').textContent = 'No location chosen yet.';
+    $('my-bookings').innerHTML = ''; $('my-listings').innerHTML = ''; $('received').innerHTML = ''; $('earnings').innerHTML = '';
+    userPos = DEFAULT_CENTER.slice();
+    authRole = null; authPhone = '';
+    lastStepIdx = 0;
+    showAuthStep('pick');
+    $('auth').classList.remove('hidden');
+  }
+  $('btn-logout').addEventListener('click', endSession);
 
   /* ---------- start ---------- */
   initMap();
   renderFind();
+  var existing = SmartAuth.current();   // already logged in from an earlier visit?
+  if (existing) { startSession(existing); }
 })();

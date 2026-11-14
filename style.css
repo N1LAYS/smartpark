@@ -167,3 +167,157 @@ footer { text-align: center; color: var(--muted); font-size: 0.8rem; padding: 20
   .map { height: 320px; }
   .results { max-height: none; }
 }
+
+/* ---------- login / sign up ---------- */
+.userbar { display: flex; align-items: center; gap: 10px; font-size: 0.88rem; }
+.btn.light { background: rgba(255,255,255,0.15); color: #fff; border-color: rgba(255,255,255,0.6); }
+.btn.light:hover { background: rgba(255,255,255,0.28); }
+.role-tag {
+  display: inline-block; padding: 1px 8px; margin-left: 6px; border-radius: 999px;
+  background: var(--accent); color: #17212f; font-size: 0.72rem; font-weight: 700;
+}
+
+.auth {
+  position: fixed; inset: 0; z-index: 900; overflow-y: auto;
+  background: var(--bg); display: grid; place-items: center; padding: 16px;
+}
+.auth.hidden { display: none; }
+.auth-box {
+  background: var(--card); border: 1px solid var(--line); border-radius: 14px;
+  width: 100%; max-width: 440px; padding: 22px;
+  box-shadow: 0 8px 30px rgba(20, 40, 70, 0.08);
+}
+.auth-box h2 { margin-top: 4px; }
+.role-pick { display: grid; grid-template-columns: 1fr 1fr; gap: 12px; margin-top: 14px; }
+.role-card {
+  font: inherit; cursor: pointer; text-align: center; color: var(--ink);
+  background: #fff; border: 2px solid var(--line); border-radius: var(--radius);
+  padding: 16px 10px; display: flex; flex-direction: column; gap: 4px; align-items: center;
+}
+.role-card:hover, .role-card:focus-visible { border-color: var(--brand); background: #f1f7ff; outline: none; }
+.role-card span { font-size: 0.8rem; color: var(--muted); }
+.role-card .role-icon { font-size: 2rem; }
+.role-card strong { font-size: 1rem; }
+.seg { display: flex; gap: 4px; background: var(--bg); padding: 4px; border-radius: 10px; margin: 8px 0 12px; }
+.seg-btn {
+  flex: 1; font: inherit; font-weight: 600; cursor: pointer; border: none;
+  padding: 8px; border-radius: 8px; background: transparent; color: var(--muted);
+}
+.seg-btn.active { background: #fff; color: var(--brand-dark); box-shadow: 0 1px 3px rgba(0,0,0,0.12); }
+.auth-box .form { border: none; padding: 0; }
+.linkbtn {
+  font: inherit; background: none; border: none; color: var(--brand);
+  cursor: pointer; padding: 0; text-decoration: underline;
+}
+footer .linkbtn { font-size: 0.8rem; color: var(--muted); }
+
+@media (max-width: 480px) {
+  .role-pick { grid-template-columns: 1fr; }
+}
+
+/* ---------- phone + OTP ---------- */
+.phone-row { display: flex; gap: 6px; }
+.phone-row .prefix {
+  display: grid; place-items: center; padding: 0 12px; border: 1px solid var(--line);
+  border-radius: 8px; background: var(--bg); color: var(--ink); font-weight: 600;
+}
+.phone-row input { flex: 1; min-width: 0; }
+.otp-input { font-size: 1.5rem; letter-spacing: 8px; text-align: center; font-weight: 700; }
+.demo-otp {
+  background: #fff4d6; border: 1px dashed #c98a00; color: #6b4600; border-radius: 10px;
+  padding: 10px 12px; margin: 8px 0; font-size: 0.88rem; text-align: center;
+}
+.demo-otp b { font-size: 1.4rem; letter-spacing: 5px; display: block; color: #17212f; }
+
+/* keep the login card inside narrow screens */
+.auth { grid-template-columns: minmax(0, 440px); justify-content: center; }
+.auth-box input { width: 100%; min-width: 0; }
+
+/* ---------- step transitions + road progress ---------- */
+@keyframes stepFwd  { from { opacity: 0; transform: translateX(28px); }  to { opacity: 1; transform: none; } }
+@keyframes stepBack { from { opacity: 0; transform: translateX(-28px); } to { opacity: 1; transform: none; } }
+.step-fwd  { animation: stepFwd  .4s cubic-bezier(.2, .8, .2, 1); }
+.step-back { animation: stepBack .4s cubic-bezier(.2, .8, .2, 1); }
+
+.road { position: relative; height: 62px; margin: 0 4px 10px; }
+.road-lane {
+  position: absolute; left: 0; right: 0; top: 14px; height: 28px; border-radius: 8px; background: #26364b;
+}
+.road-lane::after {
+  content: ""; position: absolute; left: 10px; right: 10px; top: 13px; height: 2px;
+  background: repeating-linear-gradient(90deg, #f9a825 0 10px, transparent 10px 20px);
+}
+.road-stop {
+  position: absolute; top: 0; transform: translateX(-50%); text-align: center; width: 70px;
+}
+.road-stop i {
+  display: grid; place-items: center; width: 20px; height: 20px; margin: 0 auto; border-radius: 6px;
+  background: #fff; color: var(--brand-dark); font: 700 .7rem/1 system-ui; font-style: normal;
+  border: 2px solid var(--line); transition: background .4s, color .4s, border-color .4s;
+  position: relative; z-index: 2; top: 4px;
+}
+.road-stop small { display: block; margin-top: 32px; font-size: .68rem; color: var(--muted); font-weight: 600; }
+.road-stop.done i, .road-stop.here i { background: var(--ok); color: #fff; border-color: var(--ok); }
+.road-stop.here i { background: var(--accent); color: #17212f; border-color: var(--accent); }
+.road-car {
+  position: absolute; top: 12px; left: 12%; font-size: 26px; line-height: 1;
+  transform: translateX(-50%) scaleX(-1); z-index: 3;
+  transition: left .8s cubic-bezier(.65, 0, .25, 1);
+}
+
+/* ---------- entry transition (parking barrier + car) ---------- */
+.gate {
+  position: fixed; inset: 0; z-index: 1500; overflow: hidden;
+  background: linear-gradient(165deg, #0d47a1 0%, #1565c0 55%, #1e88e5 100%);
+  display: grid; place-items: center; opacity: 0; transition: opacity .35s ease;
+}
+.gate.show { opacity: 1; }
+.gate.out  { opacity: 0; transition: opacity .55s ease; }
+.gate-card { text-align: center; color: #fff; padding: 0 20px; margin-top: -12vh; }
+.gate-card .logo.big {
+  width: 72px; height: 72px; font-size: 2.4rem; border-radius: 18px; margin: 0 auto 12px;
+  transform: scale(.4); opacity: 0;
+}
+.gate-card h2 { margin: 0 0 4px; font-size: 1.6rem; opacity: 0; transform: translateY(10px); }
+.gate-card p  { margin: 0; opacity: 0; transform: translateY(10px); color: #cfe3ff; }
+.gate-road {
+  position: absolute; left: 0; right: 0; bottom: 16%; height: 64px; background: #17212f;
+  border-top: 3px solid #2c3e57; border-bottom: 3px solid #2c3e57;
+}
+.gate-road::after {
+  content: ""; position: absolute; left: 0; right: 0; top: 30px; height: 4px;
+  background: repeating-linear-gradient(90deg, #f9a825 0 28px, transparent 28px 56px);
+}
+.gate-car {
+  position: absolute; left: 0; bottom: 10px; font-size: 44px; line-height: 1;
+  transform: translateX(-14vw) scaleX(-1);
+}
+.gate-barrier { position: absolute; left: 34%; bottom: calc(16% + 64px); width: 0; height: 0; }
+.gate-post {
+  position: absolute; left: -9px; bottom: -3px; width: 18px; height: 46px; border-radius: 4px 4px 0 0;
+  background: #fff; border: 3px solid #e53935;
+}
+.gate-arm {
+  position: absolute; left: 0; bottom: 36px; width: 150px; height: 11px; border-radius: 6px;
+  background: repeating-linear-gradient(90deg, #e53935 0 18px, #fff 18px 36px);
+  transform-origin: 0 50%; transform: rotate(0deg);
+}
+
+.gate.run .gate-card .logo.big { animation: gatePop .5s .1s cubic-bezier(.3, 1.5, .5, 1) forwards; }
+.gate.run .gate-card h2        { animation: gateUp .5s .35s ease forwards; }
+.gate.run .gate-card p         { animation: gateUp .5s .5s ease forwards; }
+.gate.run .gate-arm            { animation: gateLift .55s .5s cubic-bezier(.3, 0, .3, 1) forwards; }
+.gate.run .gate-car            { animation: gateDrive 1.15s .95s cubic-bezier(.5, 0, .75, .6) forwards; }
+@keyframes gatePop   { to { transform: scale(1); opacity: 1; } }
+@keyframes gateUp    { to { transform: none; opacity: 1; } }
+@keyframes gateLift  { to { transform: rotate(-82deg); } }
+@keyframes gateDrive { to { transform: translateX(114vw) scaleX(-1); } }
+
+/* the app itself eases in once the gate lifts */
+@keyframes appIn { from { opacity: 0; transform: translateY(10px); } to { opacity: 1; transform: none; } }
+body.app-in header, body.app-in main { animation: appIn .6s ease both; }
+
+@media (prefers-reduced-motion: reduce) {
+  .step-fwd, .step-back, body.app-in header, body.app-in main { animation: none; }
+  .road-car { transition: none; }
+}
