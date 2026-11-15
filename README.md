@@ -68,7 +68,7 @@ Planned production stack: React Native, Node.js + Express, Supabase (PostgreSQL,
 
 ## Put it online (free)
 
-**Vercel:** sign in at vercel.com with GitHub, click Add New, then Project, import this repository, and click Deploy.
+**Vercel:** https://smartpark-zeta-eight.vercel.app/
 
 **GitHub Pages:** open the repository Settings, then Pages, choose the `main` branch and Save. Your site appears at `https://<your-username>.github.io/<repository-name>/`.
 
